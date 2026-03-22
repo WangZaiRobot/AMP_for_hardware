@@ -1,4 +1,8 @@
 import time
+import sys
+import tty
+import termios
+import threading
 
 import mujoco.viewer
 import mujoco
@@ -6,9 +10,6 @@ import numpy as np
 from legged_gym import LEGGED_GYM_ROOT_DIR
 import torch
 import yaml
-
-import rospy
-from geometry_msgs.msg import Twist
 
 # Go1 关节名称 (与 Isaac Gym URDF 解析顺序一致: FR, FL, RR, RL)
 JOINT_NAMES = [
@@ -64,11 +65,53 @@ def quat_to_rpy(quat_wxyz):
     return roll, pitch, yaw
 
 
-def cmd_vel_callback(msg):
-    global cmd
-    cmd[0] = np.clip(msg.linear.x, -0.8, 0.8)
-    cmd[1] = np.clip(msg.linear.y, -1.0, 1.0)
-    cmd[2] = np.clip(msg.angular.z, -2.0, 2.0)
+class KeyboardController:
+    """通过 WASDQER 键盘控制速度指令 (非阻塞)"""
+
+    VEL_STEP = [0.1, 0.1, 0.2]   # linear_x, linear_y, angular_z 每次按键的增量
+    VEL_MAX = [0.8, 1.0, 2.0]    # 速度上限
+
+    def __init__(self, cmd_array):
+        self.cmd = cmd_array
+        self._running = True
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def _loop(self):
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            while self._running:
+                ch = sys.stdin.read(1).lower()
+                updated = True
+                if ch == 'w':
+                    self.cmd[0] = min(self.cmd[0] + self.VEL_STEP[0], self.VEL_MAX[0])
+                elif ch == 's':
+                    self.cmd[0] = max(self.cmd[0] - self.VEL_STEP[0], -self.VEL_MAX[0])
+                elif ch == 'a':
+                    self.cmd[1] = min(self.cmd[1] + self.VEL_STEP[1], self.VEL_MAX[1])
+                elif ch == 'd':
+                    self.cmd[1] = max(self.cmd[1] - self.VEL_STEP[1], -self.VEL_MAX[1])
+                elif ch == 'q':
+                    self.cmd[2] = min(self.cmd[2] + self.VEL_STEP[2], self.VEL_MAX[2])
+                elif ch == 'e':
+                    self.cmd[2] = max(self.cmd[2] - self.VEL_STEP[2], -self.VEL_MAX[2])
+                elif ch == 'r':
+                    self.cmd[:] = 0.0
+                else:
+                    updated = False
+                if updated:
+                    sys.stdout.write(f"\rcmd: vx={self.cmd[0]:+.2f}  vy={self.cmd[1]:+.2f}  yaw={self.cmd[2]:+.2f}  ")
+                    sys.stdout.flush()
+                elif ch == '\x03':  # Ctrl+C
+                    self._running = False
+                    break
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    def stop(self):
+        self._running = False
 
 
 if __name__ == "__main__":
@@ -149,13 +192,18 @@ if __name__ == "__main__":
     # load policy
     policy = torch.jit.load(policy_path)
 
-    # init ROS node and subscriber
-    rospy.init_node("deploy_mujoco", anonymous=True)
-    rospy.Subscriber("cmd_vel", Twist, cmd_vel_callback)
+    # 启动键盘控制
+    kb = KeyboardController(cmd)
+    print("键盘控制已启动:")
+    print("  W/S: 前进/后退")
+    print("  A/D: 左移/右移")
+    print("  Q/E: 左转/右转")
+    print("  R:   停止 (归零)")
+    print("  Ctrl+C: 退出")
 
     with mujoco.viewer.launch_passive(m, d) as viewer:
         start = time.time()
-        while viewer.is_running() and time.time() - start < simulation_duration:
+        while viewer.is_running() and time.time() - start < simulation_duration and kb._running:
             step_start = time.time()
 
             # 读取关节状态 (按名字索引)
