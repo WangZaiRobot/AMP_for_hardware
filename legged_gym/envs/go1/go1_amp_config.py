@@ -19,30 +19,30 @@ class Go1AMPCfg( LeggedRobotCfg ):
         amp_motion_files = MOTION_FILES
 
     class init_state( LeggedRobotCfg.init_state ):
-        pos = [0.0, 0.0, 0.32] # x,y,z [m]
+        pos = [0.0, 0.0, 0.34] # x,y,z [m]
         default_joint_angles = { # = target angles [rad] when action = 0.0
-            'FL_hip_joint': 0.0,   # [rad]
-            'RL_hip_joint': 0.0,   # [rad]
-            'FR_hip_joint': 0.0 ,  # [rad]
-            'RR_hip_joint': 0.0,   # [rad]
+            'FL_hip_joint': 0.1,   # [rad]
+            'RL_hip_joint': 0.1,   # [rad]
+            'FR_hip_joint': -0.1 ,  # [rad]
+            'RR_hip_joint': -0.1,   # [rad]
 
-            'FL_thigh_joint': 0.72,     # [rad]
-            'RL_thigh_joint': 0.72,   # [rad]
-            'FR_thigh_joint': 0.72,     # [rad]
-            'RR_thigh_joint': 0.72,   # [rad]
+            'FL_thigh_joint': 0.8,     # [rad]
+            'RL_thigh_joint': 1.,   # [rad]
+            'FR_thigh_joint': 0.8,     # [rad]
+            'RR_thigh_joint': 1.,   # [rad]
 
-            'FL_calf_joint': -1.44,   # [rad]
-            'RL_calf_joint': -1.44,    # [rad]
-            'FR_calf_joint': -1.44,  # [rad]
-            'RR_calf_joint': -1.44,    # [rad]
+            'FL_calf_joint': -1.5,   # [rad]
+            'RL_calf_joint': -1.5,    # [rad]
+            'FR_calf_joint': -1.5,  # [rad]
+            'RR_calf_joint': -1.5,    # [rad]
         }
 
     class control( LeggedRobotCfg.control ):
         control_type = 'P'
-        stiffness = {'joint': 80.}
-        damping = {'joint': 1.0}
+        stiffness = {'joint': 20.}
+        damping = {'joint': 0.5}
         action_scale = 0.25
-        decimation = 6
+        decimation = 4
 
     class terrain( LeggedRobotCfg.terrain ):
         mesh_type = 'plane'
@@ -106,7 +106,7 @@ class Go1AMPCfg( LeggedRobotCfg ):
             dof_vel = 0.0
             dof_acc = 0.0
             base_height = 0.0
-            feet_air_time = 0.05
+            feet_air_time = 0.02
             collision = 0.0
             feet_stumble = 0.0
             action_rate = 0.0
