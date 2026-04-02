@@ -1,3 +1,6 @@
+![四足AMP-2026-04-02_15 52 12](https://github.com/user-attachments/assets/670dcd6e-2f51-4ef0-8459-9abcd65100c6)
+
+
 # Adversarial Motion Priors Make Good Substitutes for Complex Reward Functions #
 
 Codebase for the "[Adversarial Motion Priors Make Good Substitutes for Complex Reward Functions](https://bit.ly/3hpvbD6)" project. This repository contains the code necessary to ground agent skills using small amounts of reference data (4.5 seconds). All experiments are performed using the A1 robot from Unitree. This repository is based off of Nikita Rudin's [legged_gym](https://github.com/leggedrobotics/legged_gym) repo, and enables us to train policies using [Isaac Gym](https://developer.nvidia.com/isaac-gym).
